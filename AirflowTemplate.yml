@@ -542,6 +542,8 @@ objects:
                 name: fernet
           - name: C_FORCE_ROOT
             value: 'true'
+          - name: AIRFLOW_HOME
+            value: "/usr/local/airflow"
           - name: HOME
             value: "/usr/local/airflow"
           - name: PIP_REQUIREMENTS
