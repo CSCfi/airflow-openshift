@@ -570,6 +570,8 @@ objects:
           - mountPath: /requirements.txt
             name: requirements-vol
             subPath: requirements.txt
+          - mountPath: '/tmp/airflow'
+            name: airpod-tmp-worker-vol
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
@@ -589,6 +591,10 @@ objects:
                 path: requirements.txt
             name: requirements
           name: requirements-vol
+        - name: airpod-tmp-worker-vol
+          persistentVolumeClaim:
+            claimName: ${PERSISTENT_VOLUME_CLAIM_TMP_WORKER}
+        
     test: false
     triggers:
     - type: ConfigChange
@@ -941,6 +947,17 @@ objects:
       requests:
         storage: ${PERSISTENT_VOLUME_CLAIM_DB_SIZE}
         
+- apiVersion: "v1"
+  kind: "PersistentVolumeClaim"
+  metadata:
+    name: ${PERSISTENT_VOLUME_CLAIM_TMP_WORKER}
+  spec:
+    accessModes:
+      - "ReadWriteOnce"
+    resources:
+      requests:
+        storage: ${PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE}
+        
 parameters:
 - description: Application name.
   displayName: Airflow Application Name.
@@ -1042,3 +1059,11 @@ parameters:
   displayName: Metadata volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_DB_SIZE
   value: "1Gi"
+- description: Attached PERSISTENT volume claim for storing temporary data across Celery Workers
+  displayName: PERSISTENT volume claim (Temp storage for workers)
+  name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER
+  value: air-tmp-worker-pvc
+- description: Size of the temporary data storage in Celery Workers
+  displayName: Metadata volume Storage Size
+  name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
+  value: "2Gi"
