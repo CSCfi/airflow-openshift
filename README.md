@@ -3,6 +3,11 @@ Run Apache Airflow on OpenShift
 
 The purpose of this template is to run [Apache Airflow](https://airflow.apache.org) on Openshift. Acknowledgement: The template is a modified version of https://github.com/adyachok/incubator-airflow.git
 
+##### Docker Image Used
+https://github.com/CSCfi/docker-airflow
+
+#### Useful Variables
+
 The template can be imported via the Openshift web ui or added via the command line interface (oc)
 
 The required variables which need to be present in order to run the template are:
