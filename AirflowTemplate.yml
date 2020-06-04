@@ -971,6 +971,18 @@ parameters:
   displayName: Airflow Application Name.
   name: APPLICATION_NAME
   required: true
+- description: Username for the Airflow Web UI authentication
+  displayName: Web UI Username
+  name: AUTHENTICATION_USERNAME
+  required: true
+- description: Password for the Airflow Web UI authentication
+  displayName: Web UI Password
+  name: AUTHENTICATION_PASSWORD
+  required: true
+- description: Email for the Airflow Web UI authentication
+  displayName: Web UI User Email
+  name: AUTHENTICATION_EMAIL
+  required: true
 - description: Jupyter Password
   displayName: Password for accessing the Jupyter web interface used for writing/uploading DAGs
   name: JUPYTER_PASSWORD
@@ -1075,15 +1087,3 @@ parameters:
   displayName: Metadata volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
   value: "2Gi"
-- description: Username for the web UI authentication
-  displayName: Web UI Username
-  name: AUTHENTICATION_USERNAME
-  required: true
-- description: Password for the web UI authentication
-  displayName: Web UI Password
-  name: AUTHENTICATION_PASSWORD
-  required: true
-- description: Email for the web UI authentication
-  displayName: Web UI User Email
-  name: AUTHENTICATION_EMAIL
-  required: true
