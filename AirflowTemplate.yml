@@ -367,6 +367,12 @@ objects:
             value: "/usr/local/airflow"
           - name: HOME
             value: "/usr/local/airflow"
+          - name: AUTHENTICATION_USERNAME
+            value: ${AUTHENTICATION_USERNAME}
+          - name: AUTHENTICATION_EMAIL
+            value: ${AUTHENTICATION_EMAIL}
+          - name: AUTHENTICATION_PASSWORD
+            value: ${AUTHENTICATION_PASSWORD}
           image: ${AIRFLOW_IMAGE}
           args:
           - webserver
@@ -1069,3 +1075,15 @@ parameters:
   displayName: Metadata volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
   value: "2Gi"
+- description: Username for the web UI authentication
+  displayName: Web UI Username
+  name: AUTHENTICATION_USERNAME
+  required: true
+- description: Password for the web UI authentication
+  displayName: Web UI Password
+  name: AUTHENTICATION_PASSWORD
+  required: true
+- description: Email for the web UI authentication
+  displayName: Web UI User Email
+  name: AUTHENTICATION_EMAIL
+  required: true
