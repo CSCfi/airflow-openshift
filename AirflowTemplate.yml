@@ -369,8 +369,6 @@ objects:
             value: "/usr/local/airflow"
           - name: AUTHENTICATION_USERNAME
             value: ${AUTHENTICATION_USERNAME}
-          - name: AUTHENTICATION_EMAIL
-            value: ${AUTHENTICATION_EMAIL}
           - name: AUTHENTICATION_PASSWORD
             value: ${AUTHENTICATION_PASSWORD}
           image: ${AIRFLOW_IMAGE}
@@ -978,10 +976,6 @@ parameters:
 - description: Password for the Airflow Web UI authentication
   displayName: Web UI Password
   name: AUTHENTICATION_PASSWORD
-  required: true
-- description: Email for the Airflow Web UI authentication
-  displayName: Web UI User Email
-  name: AUTHENTICATION_EMAIL
   required: true
 - description: Jupyter Password
   displayName: Password for accessing the Jupyter web interface used for writing/uploading DAGs
