@@ -969,8 +969,8 @@ parameters:
   displayName: Airflow Application Name.
   name: APPLICATION_NAME
   required: true
-- description: Username for the Airflow Web UI authentication
-  displayName: Web UI Username
+- description: Airflow Web UI Username
+  displayName: Username for the Airflow Web UI authentication
   name: AUTHENTICATION_USERNAME
   required: true
 - description: Password for the Airflow Web UI authentication
@@ -1060,7 +1060,7 @@ parameters:
 - description: Attached PERSISTENT volume claim for storing the logs
   displayName: PERSISTENT volume claim (Logs)
   name: PERSISTENT_VOLUME_CLAIM_LOG
-  value: air--logs-pvc
+  value: air-logs-pvc
 - description: Size of the pvc volume storing Logs
   displayName: Logs Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_LOG_SIZE
