@@ -10,7 +10,7 @@ metadata:
     description: Deploys Apache Airflow on Openshift. 
     
       Required vars - 'Application Name', 'Airflow Web UI Username', 'Airflow Web UI Password' and 'Jupyter Password', rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
-      
+
       Dependencies - Fill your python pip requirements.txt contents in the 'requirements' config-map.
 
 
@@ -988,119 +988,119 @@ objects:
         storage: 1Mi
         
 parameters:
-- description: Application name.
-  displayName: Airflow Application Name.
+- description: Name of the Airflow application
+  displayName: Application Name
   name: APPLICATION_NAME
   required: true
-- description: Airflow Web UI Username
-  displayName: Username for the Airflow Web UI authentication
+- description: Username for the Airflow web UI authentication
+  displayName: Airflow Web UI Username
   name: AUTHENTICATION_USERNAME
   required: true
-- description: Password for the Airflow Web UI authentication
-  displayName: Web UI Password
+- description: Password for the Airflow web UI authentication
+  displayName: Airflow Web UI Password
   name: AUTHENTICATION_PASSWORD
   required: true
-- description: Jupyter Password
-  displayName: Password for accessing the Jupyter web interface used for writing/uploading DAGs
+- description: Password for accessing the Jupyter web interface used for writing/uploading DAGs
+  displayName: Jupyter Password
   name: JUPYTER_PASSWORD
   required: true
-- description: Number of Celery Workers
+- description: Number of Celery workers
   displayName: Number of Workers
   name: WORKER_COUNT
   value: "2"
-- description: Celery Worker CPU (check with your project limits)
+- description: Celery worker CPU (check with your project limits)
   displayName: Worker CPU
   name: WORKER_CPU
   value: "2"
-- description: Celery Worker Memory (check with your project limits)
+- description: Celery worker memory size (check with your project limits)
   displayName: Worker Memory
   name: WORKER_MEMORY
   value: "2Gi"
-- description: Python PIP Requirements needed for the DAGs
+- description: Python PIP requirements needed for the DAGs, separated by whitespace
   displayName: Python PIP Requirements
   name: PIP_REQUIREMENTS
   value: "pandas scipy"
-- description: Username for accessing the Flower Web UI for Celery workers 
+- description: Username for accessing the Flower web UI for Celery workers
   from: '[A-Z0-9]{12}'
   generate: expression
   name: FLOWER_USER
-- description: Password for accessing the Flower Web UI for Celery workers 
+- description: Password for accessing the Flower web UI for Celery workers
   from: '[A-Z0-9]{12}'
   generate: expression
   name: FLOWER_PASSWORD
-- description: PostgreSQL (Airflow Metadata DB) Host.
-  displayName: PostgreSQL Hostname.
+- description: PostgreSQL (Airflow metadata DB) host
+  displayName: PostgreSQL Hostname
   name: POSTGRES_HOST
   value: postgresql
   required: true
-- description: Username for PostgreSQL user that will be used for accessing the database.
+- description: Username for PostgreSQL user that will be used for accessing the database
   displayName: PostgreSQL Connection Username
   from: 'user[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_USER
   required: true
-- description: Password for the PostgreSQL connection user.
+- description: Password for the PostgreSQL connection user
   displayName: PostgreSQL Connection Password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: POSTGRESQL_PASSWORD
   required: true
-- description: Database name for PostgreSQL database.
+- description: Database name for PostgreSQL database
   displayName: PostgreSQL Connection Database
   from: 'airflow[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_DATABASE
   required: true
-- description: Redis Host.
-  displayName: Redis Host (to avoid issues with default naming in OpenShift).
+- description: Redis Host (to avoid issues with default naming in OpenShift)
+  displayName: Redis Host
   name: REDIS_HOST
   value: redis
   required: true
-- description: Redis Port.
-  displayName: Redis Port (to avoid issues with default naming in OpenShift).
+- description: Redis Port (to avoid issues with default naming in OpenShift)
+  displayName: Redis Port
   name: REDIS_PORT
   value: "6379"
   required: true
-- description: Password for Redis database.
+- description: Password for Redis database
   displayName: Redis Connection Password
   from: '[A-Z0-9]{15}'
   generate: expression
   name: REDIS_PASSWORD
   required: true
-- description: Airflow image link.
-  displayName: Airflow Image Link.
+- description: Airflow image link
+  displayName: Airflow Image Link
   name: AIRFLOW_IMAGE
   value: docker-registry.rahti.csc.fi/airflow-image/airflow-os:latest
   required: true
-- description: Attached PERSISTENT volume claim for storing the dags
-  displayName: PERSISTENT volume claim (DAGs)
+- description: Attached PERSISTENT volume claim name for storing the DAGs
+  displayName: PERSISTENT Volume Claim Name (DAGs)
   name: PERSISTENT_VOLUME_CLAIM_DAG
   value: air-dags-pvc
 - description: Size of the pvc volume storing DAGs
   displayName: DAG Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_DAG_SIZE
   value: "1Gi"
-- description: Attached PERSISTENT volume claim for storing the logs
-  displayName: PERSISTENT volume claim (Logs)
+- description: Attached PERSISTENT volume claim name for storing the logs
+  displayName: PERSISTENT Volume Claim Name (Logs)
   name: PERSISTENT_VOLUME_CLAIM_LOG
   value: air-logs-pvc
-- description: Size of the pvc volume storing Logs
+- description: Size of the pvc volume storing logs
   displayName: Logs Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_LOG_SIZE
   value: "1Gi"
-- description: Attached PERSISTENT volume claim for storing metadata in postgres db
-  displayName: PERSISTENT volume claim (DB)
+- description: Attached PERSISTENT volume claim name for storing metadata in PostgreSQL database
+  displayName: PERSISTENT Volume Claim Name (DB)
   name: PERSISTENT_VOLUME_CLAIM_DB
   value: air-db-pvc
 - description: Size of the metadata volume storage
-  displayName: Metadata volume Storage Size
+  displayName: Metadata Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_DB_SIZE
   value: "1Gi"
-- description: Attached PERSISTENT volume claim for storing temporary data across Celery Workers
-  displayName: PERSISTENT volume claim (Temp storage for workers)
+- description: Attached PERSISTENT volume claim name for storing temporary data across Celery workers
+  displayName: PERSISTENT Volume Claim Name (Temp Storage for Workers)
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER
   value: air-tmp-worker-pvc
-- description: Size of the temporary data storage in Celery Workers
-  displayName: Metadata volume Storage Size
+- description: Size of the temporary data storage in Celery workers
+  displayName: Metadata Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
   value: "2Gi"
