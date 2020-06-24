@@ -13,7 +13,9 @@ The template can be imported via the Openshift web ui or added via the command l
 The required variables which need to be present in order to run the template are:
 
 1. APPLICATION_NAME: A unique name identifying the airflow deployment
-2. JUPYTER_PASSWORD: For accessing the Jupyter web interface
+2. AUTHENTICATION_USERNAME: Username for the Airflow web UI authentication
+3. AUTHENTICATION_PASSWORD: Password for the Airflow web UI authentication
+4. JUPYTER_PASSWORD: For accessing the Jupyter web interface
 
 Rest of the variables are optional and have a value by default which can be changed, if needed.
 

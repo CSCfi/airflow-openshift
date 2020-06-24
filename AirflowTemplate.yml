@@ -9,7 +9,7 @@ metadata:
   annotations:
     description: Deploys Apache Airflow on Openshift. 
     
-      Required vars - 'Application Name' and 'Jupyter Password', rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
+      Required vars - 'Application Name', 'Airflow Web UI Username', 'Airflow Web UI Password' and 'Jupyter Password', rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
       
       Dependencies - Fill your python pip requirements.txt contents in the 'requirements' config-map.
 
