@@ -8,16 +8,19 @@ message: |-
 metadata:
   annotations:
     description: Deploys Apache Airflow on Openshift. 
+
     
-      Required vars - 'Application Name', 'Airflow Web UI Username', 'Airflow Web UI Password' and 'Jupyter Password', rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
-
-      Dependencies - Fill your python pip requirements.txt contents in the 'requirements' config-map.
+      Required variables - 'Application Name', 'Airflow Web UI Username', 'Airflow Web UI Password' and 'Jupyter Password'. Rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
 
 
-      By default, the setup deploys the airflow webserver backed by 2 celery workers.
+      Dependencies - Before deployment you can list all required Python pip packages in the 'Python PIP Requirements' parameter, separated by whitespace. After deployment you can fill your Python pip requirements.txt contents in the 'requirements' config-map.
+
+
+      By default, the setup deploys the Airflow webserver backed by 2 Celery workers.
       The configuration for the worker pods can be changed according to the Openshift Quota(Limit Range). To get more quota, you should contact Openshift admins.
 
-      WARNING- This deployment setup is still in the experimental stage.
+
+      WARNING - This deployment setup is still in the experimental stage.
     iconClass: icon-datavirt
     openshift.io/display-name: Apache Airflow
     openshift.io/documentation-url: https://github.com/CSCfi/spark-openshift
