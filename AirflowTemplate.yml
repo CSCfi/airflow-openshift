@@ -55,6 +55,13 @@ objects:
           app: ${APPLICATION_NAME}
           deploymentconfig: flower
       spec:
+        initContainers:
+          - image: busybox
+            name: fernet-key-waiter
+            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
+            volumeMounts:
+              - name: fernet-key-vol
+                mountPath: /tmp/fernet_key
         containers:
         - env:
           - name: FLOWER_PORT
@@ -68,11 +75,6 @@ objects:
               secretKeyRef:
                 key: flower_basic_auth
                 name: flower-auth
-          - name: FERNET_KEY
-            valueFrom:
-              secretKeyRef:
-                key: fernet-key
-                name: fernet
           - name: REDIS_HOST
             value: ${REDIS_HOST}
           - name: REDIS_PORT
@@ -112,6 +114,13 @@ objects:
           - containerPort: 5555
             protocol: TCP
           resources: {}
+          volumeMounts:
+          - mountPath: /tmp/fernet_key
+            name: fernet-key-vol
+        volumes:
+        - name: fernet-key-vol
+          persistentVolumeClaim:
+            claimName: fernet-key-pvc
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
@@ -327,6 +336,13 @@ objects:
           app: ${APPLICATION_NAME}
           deploymentconfig: webserver
       spec:
+        initContainers:
+          - image: docker-registry.rahti.csc.fi/airflow-image/fernet-key-generator:latest
+            name: fernet-key-generator
+            command: ["python3","create_fernet_key.py"]
+            volumeMounts:
+              - name: fernet-key-vol
+                mountPath: /tmp/fernet_key
         containers:
         - name: webserver
           env:
@@ -358,11 +374,6 @@ objects:
               secretKeyRef:
                 key: database-password
                 name: redis
-          - name: FERNET_KEY
-            valueFrom:
-              secretKeyRef:
-                key: fernet-key
-                name: fernet
           - name: AIRFLOW_HOME
             value: "/usr/local/airflow"
           - name: HOME
@@ -397,6 +408,8 @@ objects:
           - mountPath: /requirements.txt
             name: requirements-vol
             subPath: requirements.txt
+          - mountPath: /tmp/fernet_key
+            name: fernet-key-vol
             
         - name: scheduler
           env:
@@ -428,11 +441,6 @@ objects:
               secretKeyRef:
                 key: database-password
                 name: redis
-          - name: FERNET_KEY
-            valueFrom:
-              secretKeyRef:
-                key: fernet-key
-                name: fernet
           - name: AIRFLOW_HOME
             value: "/usr/local/airflow"
           - name: HOME
@@ -465,6 +473,8 @@ objects:
           - mountPath: /requirements.txt
             name: requirements-vol
             subPath: requirements.txt
+          - mountPath: /tmp/fernet_key
+            name: fernet-key-vol
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
@@ -477,6 +487,9 @@ objects:
         - name: airpod-log-vol
           persistentVolumeClaim:
             claimName: ${PERSISTENT_VOLUME_CLAIM_LOG}
+        - name: fernet-key-vol
+          persistentVolumeClaim:
+            claimName: fernet-key-pvc
         - configMap:
             defaultMode: 420
             items:
@@ -509,6 +522,13 @@ objects:
           app: ${APPLICATION_NAME}
           deploymentconfig: worker
       spec:
+        initContainers:
+          - image: busybox
+            name: fernet-key-waiter
+            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
+            volumeMounts:
+              - name: fernet-key-vol
+                mountPath: /tmp/fernet_key
         containers:
         - env:
           - name: EXECUTOR
@@ -539,11 +559,6 @@ objects:
               secretKeyRef:
                 key: database-password
                 name: postgresql
-          - name: FERNET_KEY
-            valueFrom:
-              secretKeyRef:
-                key: fernet-key
-                name: fernet
           - name: C_FORCE_ROOT
             value: 'true'
           - name: AIRFLOW_HOME
@@ -578,6 +593,8 @@ objects:
             subPath: requirements.txt
           - mountPath: '/tmp/airflow'
             name: airpod-tmp-worker-vol
+          - mountPath: /tmp/fernet_key
+            name: fernet-key-vol
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
@@ -590,6 +607,9 @@ objects:
         - name: airpod-log-vol
           persistentVolumeClaim:
             claimName: ${PERSISTENT_VOLUME_CLAIM_LOG}
+        - name: fernet-key-vol
+          persistentVolumeClaim:
+            claimName: fernet-key-pvc
         - configMap:
             defaultMode: 420
             items:
@@ -654,14 +674,6 @@ objects:
   metadata:
     name: requirements
  
-- apiVersion: v1
-  data:
-    fernet-key: azk3UG1UcWItYVd3WVdFMlNtRTZjTmMzQXlwOTNpN0hDdkR0emZWNm5aVT0=
-  kind: Secret
-  metadata:
-    name: fernet
-  type: Opaque
-  
 - apiVersion: v1
   stringData:
     flower_basic_auth: ${FLOWER_USER}:${FLOWER_PASSWORD}
@@ -963,6 +975,17 @@ objects:
     resources:
       requests:
         storage: ${PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE}
+
+- apiVersion: "v1"
+  kind: "PersistentVolumeClaim"
+  metadata:
+    name: "fernet-key-pvc"
+  spec:
+    accessModes:
+      - "ReadWriteMany"
+    resources:
+      requests:
+        storage: 1Mi
         
 parameters:
 - description: Application name.
