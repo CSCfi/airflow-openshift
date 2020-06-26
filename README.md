@@ -37,7 +37,7 @@ There are two ways of doing this as of now.
 
 1. Before Deployment: Using the *variable* **PIP_REQUIREMENTS** , where you can specify the name of the library separated by whitespace, for eg. pandas scipy
 
-2. After Deployment: If you have a requirements.txt file, you could edit the *configmap* **requirments** and add your requirements there (Please keep in mind, *boto3* is a required library which is present by default, do not remove that otherwise there could trouble accessing the S3 Object store.) 
+2. After Deployment: If you have a requirements.txt file, you could edit the *configmap* **requirements** and add your requirements there (Please keep in mind, *boto3* is a required library which is present by default, do not remove that otherwise there could trouble accessing the S3 Object store.) 
 **NOTE** - when using this option, you need to redeploy the *webserver* and *worker* deployments for the changes to take place!
 
 ## How to create a connection to a custom S3 Object Store
