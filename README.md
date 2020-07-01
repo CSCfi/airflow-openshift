@@ -40,6 +40,9 @@ There are two ways of doing this as of now.
 2. After Deployment: If you have a requirements.txt file, you could edit the *configmap* **requirements** and add your requirements there (Please keep in mind, *boto3* is a required library which is present by default, do not remove that otherwise there could trouble accessing the S3 Object store.) 
 **NOTE** - when using this option, you need to redeploy the *webserver* and *worker* deployments for the changes to take place!
 
+## Setting configuration variables
+If you want to change the Airflow configuration, the best way to do it is to add new environment variables in the deployment configs of the pods. Be aware that some variables have to be set in the worker pods, while some have to be set in the webserver pod for the effect to take place! For more information about configuring Airflow with environment variables, check <https://airflow.apache.org/docs/stable/howto/set-config.html>. For a list of all available Airflow configurations, see <https://airflow.apache.org/docs/stable/configurations-ref.html>.
+
 ## How to create a connection to a custom S3 Object Store
 
 This requires the presence of the boto3 library, which is added by default to the requirements configmap.
@@ -49,4 +52,3 @@ After that, you can create a connection via the Airflow web ui by clicking on *A
 * Conn Id: use a unique id for the connection and then you need to pass this id in your DAG Python code when interacting with S3
 * Conn Type: S3
 * Extra: {"aws\_access\_key\_id":"your-access-key-id", "aws\_secret\_access\_key": "your-secret-access-key", "host": "the-s3-endpoint-url"}
-
