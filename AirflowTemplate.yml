@@ -23,7 +23,7 @@ metadata:
       WARNING - This deployment setup is still in the experimental stage.
     iconClass: icon-datavirt
     openshift.io/display-name: Apache Airflow
-    openshift.io/documentation-url: https://github.com/CSCfi/spark-openshift
+    openshift.io/documentation-url: https://github.com/CSCfi/airflow-openshift
     openshift.io/support-url: https://www.csc.fi/contact-info
     openshift.io/long-description: Apache Airflow (or simply Airflow) is a platform to programmatically author, schedule, and monitor workflows. 
     
