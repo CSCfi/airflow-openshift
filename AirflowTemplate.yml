@@ -1090,7 +1090,7 @@ parameters:
 - description: Size of the pvc volume storing logs
   displayName: Logs Volume Storage Size
   name: PERSISTENT_VOLUME_CLAIM_LOG_SIZE
-  value: "1Gi"
+  value: "10Gi"
 - description: Attached PERSISTENT volume claim name for storing metadata in PostgreSQL database
   displayName: PERSISTENT Volume Claim Name (DB)
   name: PERSISTENT_VOLUME_CLAIM_DB

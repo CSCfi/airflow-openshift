@@ -73,3 +73,11 @@ After that, you can create a connection via the Airflow web ui by clicking on *A
 * Conn Id: use a unique id for the connection and then you need to pass this id in your DAG Python code when interacting with S3
 * Conn Type: S3
 * Extra: {"aws\_access\_key\_id":"your-access-key-id", "aws\_secret\_access\_key": "your-secret-access-key", "host": "the-s3-endpoint-url"}
+
+## Logging issues
+Airflow produces quite a lot of log files, and the log pvc gets full fairly easily, which in turn prevents the whole application from working. This is why a DAG that removes old log files is added and enabled by default. **It is strongly encouraged to keep this DAG enabled!**
+
+By default log files get removed after two weeks, but you can define when log files get removed by either modifying the DAG directly or creating a variable in the web UI (Admin -> Variables):
+
+* Key: airflow_log_cleanup__max_log_age_in_days
+* Value: number of days after a log file is deleted, for example 30
