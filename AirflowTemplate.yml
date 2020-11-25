@@ -59,7 +59,7 @@ objects:
           deploymentconfig: flower
       spec:
         initContainers:
-          - image: busybox
+          - image: docker-registry.rahti.csc.fi/da-images/busybox:1
             name: fernet-key-waiter
             command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
             volumeMounts:
@@ -526,7 +526,7 @@ objects:
           deploymentconfig: worker
       spec:
         initContainers:
-          - image: busybox
+          - image: docker-registry.rahti.csc.fi/da-images/busybox:1
             name: fernet-key-waiter
             command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
             volumeMounts:
