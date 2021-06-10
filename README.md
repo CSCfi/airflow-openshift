@@ -74,4 +74,4 @@ Create a connection via the Airflow web UI by clicking on *Admin->Connections* ,
 
 * Conn Id: use a unique id for the connection. When interacting with S3, you need to pass this id in your DAG Python code 
 * Conn Type: S3
-* Extra: `{"aws_access_key_id":"your-access-key-id", "aws_secret_access\_key": "your-secret-access-key", "host": "the-s3-endpoint-url"}`
+* Extra: `{"aws_access_key_id":"your-access-key-id", "aws_secret_access_key": "your-secret-access-key", "host": "the-s3-endpoint-url"}`
