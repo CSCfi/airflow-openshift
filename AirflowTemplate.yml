@@ -1044,19 +1044,19 @@ parameters:
   name: APPLICATION_NAME
   required: true
 - description: Username for the Airflow web UI authentication
-  displayName: Airflow Web UI Username
+  displayName: Airflow web UI username
   name: AUTHENTICATION_USERNAME
   required: true
 - description: Password for the Airflow web UI authentication
-  displayName: Airflow Web UI Password
+  displayName: Airflow web UI password
   name: AUTHENTICATION_PASSWORD
   required: true
 - description: Password for accessing the Jupyter web interface used for writing/uploading DAGs
-  displayName: Jupyter Password
+  displayName: Jupyter password
   name: JUPYTER_PASSWORD
   required: true
 - description: Number of Celery workers
-  displayName: Number of Workers
+  displayName: Number of workers
   name: WORKER_COUNT
   value: "2"
 - description: Celery worker CPU (check with your project limits)
@@ -1064,11 +1064,11 @@ parameters:
   name: WORKER_CPU
   value: "2"
 - description: Celery worker memory size (check with your project limits)
-  displayName: Worker Memory
+  displayName: Worker memory
   name: WORKER_MEMORY
   value: "2Gi"
-- description: Python PIP requirements needed for the DAGs, separated by whitespace. NOTE! This feature is fragile, and does not work for example for Airflow providers packages. For best results build your own Airflow image with the dependencies baked in. Consider also using PythonVirtualenvOperator.
-  displayName: Python PIP Requirements
+- description: Python pip requirements needed for the DAGs, separated by whitespace. NOTE! This feature is fragile, and does not work for example for Airflow providers packages. For best results build your own Airflow image with the dependencies baked in. Consider also using PythonVirtualenvOperator.
+  displayName: Python pip requirements
   name: PIP_REQUIREMENTS
   value: "pandas scipy==1.5.1"
 - description: Username for accessing the Flower web UI for Celery workers
@@ -1082,73 +1082,73 @@ parameters:
   generate: expression
   name: FLOWER_PASSWORD
 - description: PostgreSQL (Airflow metadata DB) host
-  displayName: PostgreSQL Hostname
+  displayName: PostgreSQL hostname
   name: POSTGRESQL_HOST
   value: postgresql
   required: true
 - description: Username for PostgreSQL user that will be used for accessing the database
-  displayName: PostgreSQL Connection Username
+  displayName: PostgreSQL connection username
   from: 'user[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_USER
   required: true
 - description: Password for the PostgreSQL connection user
-  displayName: PostgreSQL Connection Password
+  displayName: PostgreSQL connection password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: POSTGRESQL_PASSWORD
   required: true
 - description: Database name for PostgreSQL database
-  displayName: PostgreSQL Connection Database
+  displayName: PostgreSQL connection database
   from: 'airflow[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_DATABASE
   required: true
-- description: Redis Host (to avoid issues with default naming in OpenShift)
-  displayName: Redis Host
+- description: Redis hostname (to avoid issues with default naming in OpenShift)
+  displayName: Redis hostname
   name: REDIS_HOST
   value: redis
   required: true
 - description: Password for Redis database
-  displayName: Redis Connection Password
+  displayName: Redis connection password
   from: '[A-Z0-9]{15}'
   generate: expression
   name: REDIS_PASSWORD
   required: true
 - description: Airflow image link
-  displayName: Airflow Image Link
+  displayName: Airflow image link
   name: AIRFLOW_IMAGE
   value: docker-registry.rahti.csc.fi/airflow-image/airflow-2-os:latest
   required: true
 - description: Attached PERSISTENT volume claim name for storing the DAGs
-  displayName: PERSISTENT Volume Claim Name (DAGs)
+  displayName: PERSISTENT volume claim name (DAGs)
   name: PERSISTENT_VOLUME_CLAIM_DAG
   value: air-dags-pvc
 - description: Size of the pvc volume storing DAGs
-  displayName: DAG Volume Storage Size
+  displayName: DAG volume storage size
   name: PERSISTENT_VOLUME_CLAIM_DAG_SIZE
   value: "1Gi"
 - description: Attached PERSISTENT volume claim name for storing the logs
-  displayName: PERSISTENT Volume Claim Name (Logs)
+  displayName: PERSISTENT volume claim name (logs)
   name: PERSISTENT_VOLUME_CLAIM_LOG
   value: air-logs-pvc
 - description: Size of the pvc volume storing logs
-  displayName: Logs Volume Storage Size
+  displayName: Logs volume storage size
   name: PERSISTENT_VOLUME_CLAIM_LOG_SIZE
   value: "10Gi"
 - description: Attached PERSISTENT volume claim name for storing metadata in PostgreSQL database
-  displayName: PERSISTENT Volume Claim Name (DB)
+  displayName: PERSISTENT volume claim name (database)
   name: PERSISTENT_VOLUME_CLAIM_DB
   value: air-db-pvc
 - description: Size of the metadata volume storage
-  displayName: Metadata Volume Storage Size
+  displayName: Metadata volume storage size
   name: PERSISTENT_VOLUME_CLAIM_DB_SIZE
   value: "1Gi"
 - description: Attached PERSISTENT volume claim name for storing temporary data across Celery workers
-  displayName: PERSISTENT Volume Claim Name (Temp Storage for Workers)
+  displayName: PERSISTENT volume claim name (temporary storage for workers)
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER
   value: air-tmp-worker-pvc
 - description: Size of the temporary data storage in Celery workers
-  displayName: Metadata Volume Storage Size
+  displayName: Temporary data volume storage size
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
   value: "2Gi"
