@@ -370,11 +370,6 @@ objects:
             value: "/opt/airflow"
           - name: AIRFLOW__CORE__FERNET_KEY_CMD
             value: "cat /tmp/fernet_key/fernet_key.txt"
-          - name: _PIP_ADDITIONAL_REQUIREMENTS
-            valueFrom:
-              configMapKeyRef:
-                name: pip-requirements
-                key: pip-requirements.txt
           image: ${AIRFLOW_IMAGE}
           args:
           - webserver
