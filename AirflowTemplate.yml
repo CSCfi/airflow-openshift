@@ -3,21 +3,24 @@ kind: Template
 labels:
   template: airflow
 message: |-
-  To access the Airflow web ui, you should open the Route for the 'webserver' deployment.
-  To upload/write the DAGs, you should open the Route for the 'jupyter' deployment.
+  To access the Airflow web UI, open the Route for the 'webserver' deployment.
+  To upload/write the DAGs, open the Route for the 'jupyter' deployment.
 metadata:
   annotations:
     description: Deploys Apache Airflow on Openshift. 
 
     
-      Required variables - 'Application Name', 'Airflow Web UI Username', 'Airflow Web UI Password' and 'Jupyter Password'. Rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
+      Required variables - 'Application name', 'Airflow web UI username', 'Airflow web UI password' and 'Jupyter password'. Rest of the variables are optional and are filled/generated with default/auto values, if you do not explicitly provide a value.
 
 
-      Dependencies - Before deployment you can list all required Python pip packages in the 'Python PIP Requirements' parameter, separated by whitespace. After deployment you can fill your Python pip requirements.txt contents in the 'requirements' config-map.
+      Dependencies - Before deployment you can list all required Python pip packages in the 'Python pip requirements' parameter, separated by whitespace. After deployment you can edit your Python pip requirements in the 'pip-requirements' config-map, similarly separated by whitespace, and redeploy the worker and scheduler pods. Note however, that this is a fragile and unrecommended way to set up dependencies. Consider using PythonVirtualenvOperator, that lets you load needed libraries individually for the tasks that need them. If more complicated dependencies are needed, consider building the image yourself according to Airflow documentation, and use that image as the basis for this deployment by setting the image link to the 'Airflow image link' parameter.
+
+
+      Uploading/writing DAGs - To upload or write DAGs, open the route for the 'jupyter' deployment. Once uploaded or written through the jupyter user interface, the DAGs should appear to the Airflow web UI within about 5 minutes.
 
 
       By default, the setup deploys the Airflow webserver backed by 2 Celery workers.
-      The configuration for the worker pods can be changed according to the Openshift Quota(Limit Range). To get more quota, you should contact Openshift admins.
+      The configuration for the worker pods can be changed according to the Openshift Quota(Limit Range). To get more quota, contact Openshift admins.
 
 
       WARNING - This deployment setup is still in the experimental stage.
@@ -27,7 +30,7 @@ metadata:
     openshift.io/support-url: https://www.csc.fi/contact-info
     openshift.io/long-description: Apache Airflow (or simply Airflow) is a platform to programmatically author, schedule, and monitor workflows. 
     
-      The worksflows are defined as code, so that they become more maintainable, versionable, testable, and collaborative.
+      The workflows are defined as code, so that they become more maintainable, versionable, testable, and collaborative.
     
       Airflow is used to author workflows as directed acyclic graphs (DAGs) of tasks. The Airflow scheduler executes your tasks on an array of workers while following the specified dependencies. 
       
@@ -36,7 +39,7 @@ metadata:
     tags: python, data pipelines, orchestration platform
     template.openshift.io/bindable: "false"
   name: apache-airflow
-  
+
 objects:
 
 - apiVersion: v1
@@ -61,7 +64,7 @@ objects:
         initContainers:
           - image: docker-registry.rahti.csc.fi/da-images/busybox:1
             name: fernet-key-waiter
-            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
+            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.txt ]; do sleep 1; done' ]
             volumeMounts:
               - name: fernet-key-vol
                 mountPath: /tmp/fernet_key
@@ -71,41 +74,33 @@ objects:
             value: '5555'
           - name: FLOWER_HOST
             value: flower
-          - name: EXECUTOR
-            value: Celery
+          - name : AIRFLOW__CORE__EXECUTOR
+            value: CeleryExecutor
           - name: FLOWER_BASIC_AUTH
             valueFrom:
               secretKeyRef:
                 key: flower_basic_auth
                 name: flower-auth
-          - name: REDIS_HOST
-            value: ${REDIS_HOST}
-          - name: REDIS_PORT
-            value: ${REDIS_PORT}
-          - name: REDIS_PASSWORD
+          - name: AIRFLOW__CELERY__BROKER_URL
             valueFrom:
               secretKeyRef:
-                key: database-password
+                key: broker-url
                 name: redis
-          - name: POSTGRES_HOST
-            value: ${POSTGRES_HOST}
-          - name: POSTGRES_DB
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
             valueFrom:
               secretKeyRef:
-                key: database-name
+                key: connection-string
                 name: postgresql
-          - name: POSTGRES_USER
+          - name: AIRFLOW__CELERY__RESULT_BACKEND
             valueFrom:
               secretKeyRef:
-                key: database-user
+                key: result-backend
                 name: postgresql
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: postgresql
+          - name: AIRFLOW__CORE__FERNET_KEY_CMD
+            value: "cat /tmp/fernet_key/fernet_key.txt"
           image: ${AIRFLOW_IMAGE}
           args:
+          - celery
           - flower
           imagePullPolicy: Always
           name: flower
@@ -131,24 +126,24 @@ objects:
         terminationGracePeriodSeconds: 30
     triggers:
     - type: ConfigChange
-    
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     labels:
       app: ${APPLICATION_NAME}
       template: postgresql-ephemeral-template
-    name: postgresql
+    name: ${POSTGRESQL_HOST}
   spec:
     replicas: 1
     selector:
-      name: postgresql
+      name: ${POSTGRESQL_HOST}
     strategy:
       type: Recreate
     template:
       metadata:
         labels:
-          name: postgresql
+          name: ${POSTGRESQL_HOST}
       spec:
         containers:
         - env:
@@ -167,7 +162,7 @@ objects:
               secretKeyRef:
                 key: database-name
                 name: postgresql
-          image: registry.access.redhat.com/rhscl/postgresql-95-rhel7@sha256:de66da4812f0de42cee0bef65899d75f8b1a7440858271f133c8f73c80be663d
+          image: centos/postgresql-12-centos7:1
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 3
@@ -177,7 +172,7 @@ objects:
             tcpSocket:
               port: 5432
             timeoutSeconds: 1
-          name: postgresql
+          name: ${POSTGRESQL_HOST}
           ports:
           - containerPort: 5432
             protocol: TCP
@@ -190,7 +185,7 @@ objects:
               - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c
                 'SELECT 1'
             failureThreshold: 3
-            initialDelaySeconds: 5
+            initialDelaySeconds: 20
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -216,26 +211,25 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - postgresql
+        - ${POSTGRESQL_HOST}
         from:
           kind: ImageStreamTag
-          name: postgresql:9.5
+          name: postgresql:12
           namespace: openshift
       type: ImageChange
     - type: ConfigChange
-    
-    
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     labels:
       app: ${APPLICATION_NAME}
       template: redis-ephemeral-template
-    name: redis
+    name: ${REDIS_HOST}
   spec:
     replicas: 1
     selector:
-      name: redis
+      name: ${REDIS_HOST}
     strategy:
       activeDeadlineSeconds: 21600
       recreateParams:
@@ -245,7 +239,7 @@ objects:
     template:
       metadata:
         labels:
-          name: redis
+          name: ${REDIS_HOST}
       spec:
         containers:
         - env:
@@ -264,7 +258,7 @@ objects:
             tcpSocket:
               port: 6379
             timeoutSeconds: 1
-          name: redis
+          name: ${REDIS_HOST}
           ports:
           - containerPort: 6379
             protocol: TCP
@@ -302,15 +296,14 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - redis
+        - ${REDIS_HOST}
         from:
           kind: ImageStreamTag
           name: redis:3.2
           namespace: openshift
       type: ImageChange
     - type: ConfigChange
-    
-    
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -349,46 +342,47 @@ objects:
         containers:
         - name: webserver
           env:
-          - name: EXECUTOR
-            value: Celery
-          - name: POSTGRES_HOST
-            value: ${POSTGRES_HOST}
-          - name: POSTGRES_DB
+          - name : AIRFLOW__CORE__EXECUTOR
+            value: CeleryExecutor
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
             valueFrom:
               secretKeyRef:
-                key: database-name
+                key: connection-string
                 name: postgresql
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                key: database-user
-                name: postgresql
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: postgresql
-          - name: REDIS_HOST
-            value: ${REDIS_HOST}
-          - name: REDIS_PORT
-            value: ${REDIS_PORT}
-          - name: REDIS_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: redis
-          - name: AIRFLOW_HOME
-            value: "/usr/local/airflow"
-          - name: HOME
-            value: "/usr/local/airflow"
-          - name: AUTHENTICATION_USERNAME
+          - name: _AIRFLOW_DB_UPGRADE
+            value: "true"
+          - name: _AIRFLOW_WWW_USER_CREATE
+            value: "true"
+          - name: _AIRFLOW_WWW_USER_USERNAME
             value: ${AUTHENTICATION_USERNAME}
-          - name: AUTHENTICATION_PASSWORD
+          - name: _AIRFLOW_WWW_USER_PASSWORD
             value: ${AUTHENTICATION_PASSWORD}
+          - name: AIRFLOW__CELERY__BROKER_URL
+            valueFrom:
+              secretKeyRef:
+                key: broker-url
+                name: redis
+          - name: AIRFLOW__CELERY__RESULT_BACKEND
+            valueFrom:
+              secretKeyRef:
+                key: result-backend
+                name: postgresql
+          - name: AIRFLOW_HOME
+            value: "/opt/airflow"
+          - name: HOME
+            value: "/opt/airflow"
+          - name: AIRFLOW__CORE__FERNET_KEY_CMD
+            value: "cat /tmp/fernet_key/fernet_key.txt"
           image: ${AIRFLOW_IMAGE}
           args:
           - webserver
           imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 30
           ports:
           - containerPort: 5555
             protocol: TCP
@@ -404,78 +398,13 @@ objects:
               cpu: '1'
               memory: 2Gi
           volumeMounts:
-          - mountPath: "/usr/local/airflow/dags"
+          - mountPath: "/opt/airflow/dags"
             name: airpod-dag-vol
-          - mountPath: "/usr/local/airflow/logs"
+          - mountPath: "/opt/airflow/logs"
             name: airpod-log-vol
-          - mountPath: /requirements.txt
-            name: requirements-vol
-            subPath: requirements.txt
-          - mountPath: /tmp/fernet_key
-            name: fernet-key-vol
-            
-        - name: scheduler
-          env:
-          - name: EXECUTOR
-            value: Celery
-          - name: POSTGRES_HOST
-            value: ${POSTGRES_HOST}
-          - name: POSTGRES_DB
-            valueFrom:
-              secretKeyRef:
-                key: database-name
-                name: postgresql
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                key: database-user
-                name: postgresql
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: postgresql
-          - name: REDIS_HOST
-            value: ${REDIS_HOST}
-          - name: REDIS_PORT
-            value: ${REDIS_PORT}
-          - name: REDIS_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: redis
-          - name: AIRFLOW_HOME
-            value: "/usr/local/airflow"
-          - name: HOME
-            value: "/usr/local/airflow"
-          - name: PIP_REQUIREMENTS
-            value: ${PIP_REQUIREMENTS}
-          image: ${AIRFLOW_IMAGE}
-          args:
-          - scheduler
-          imagePullPolicy: Always
-          ports:
-          - containerPort: 5555
-            protocol: TCP
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8793
-            protocol: TCP
-          resources:
-            limits:
-              cpu: '1'
-              memory: 2Gi
-            requests:
-              cpu: '1'
-              memory: 2Gi
-          volumeMounts:
-          - mountPath: "/usr/local/airflow/dags"
-            name: airpod-dag-vol
-          - mountPath: "/usr/local/airflow/logs"
-            name: airpod-log-vol
-          - mountPath: /requirements.txt
-            name: requirements-vol
-            subPath: requirements.txt
+          - mountPath: /pip-requirements.txt
+            name: pip-requirements-vol
+            subPath: pip-requirements.txt
           - mountPath: /tmp/fernet_key
             name: fernet-key-vol
         dnsPolicy: ClusterFirst
@@ -496,15 +425,132 @@ objects:
         - configMap:
             defaultMode: 420
             items:
-              - key: requirements.txt
-                path: requirements.txt
-            name: requirements
-          name: requirements-vol
+              - key: pip-requirements.txt
+                path: pip-requirements.txt
+            name: pip-requirements
+          name: pip-requirements-vol
     test: false
     triggers:
     - type: ConfigChange
-    
-    
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: ${APPLICATION_NAME}
+    name: scheduler
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: ${APPLICATION_NAME}
+      deploymentconfig: scheduler
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${APPLICATION_NAME}
+          deploymentconfig: scheduler
+      spec:
+        initContainers:
+          - image: docker-registry.rahti.csc.fi/airflow-image/fernet-key-generator:latest
+            name: fernet-key-generator
+            command: ["python3","create_fernet_key.py"]
+            volumeMounts:
+              - name: fernet-key-vol
+                mountPath: /tmp/fernet_key
+        containers:
+        - name: scheduler
+          env:
+          - name : AIRFLOW__CORE__EXECUTOR
+            value: CeleryExecutor
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+            valueFrom:
+              secretKeyRef:
+                key: connection-string
+                name: postgresql
+          - name: AIRFLOW__CELERY__BROKER_URL
+            valueFrom:
+              secretKeyRef:
+                key: broker-url
+                name: redis
+          - name: AIRFLOW__CELERY__RESULT_BACKEND
+            valueFrom:
+              secretKeyRef:
+                key: result-backend
+                name: postgresql
+          - name: AIRFLOW_HOME
+            value: "/opt/airflow"
+          - name: HOME
+            value: "/opt/airflow"
+          - name: _PIP_ADDITIONAL_REQUIREMENTS
+            valueFrom:
+              configMapKeyRef:
+                name: pip-requirements
+                key: pip-requirements.txt
+          image: ${AIRFLOW_IMAGE}
+          args:
+          - scheduler
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 5555
+            protocol: TCP
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8793
+            protocol: TCP
+          resources:
+            limits:
+              cpu: '1'
+              memory: 2Gi
+            requests:
+              cpu: '1'
+              memory: 2Gi
+          volumeMounts:
+          - mountPath: "/opt/airflow/dags"
+            name: airpod-dag-vol
+          - mountPath: "/opt/airflow/logs"
+            name: airpod-log-vol
+          - mountPath: /pip-requirements.txt
+            name: pip-requirements-vol
+            subPath: pip-requirements.txt
+          - mountPath: /tmp/fernet_key
+            name: fernet-key-vol
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: airpod-dag-vol
+          persistentVolumeClaim:
+            claimName: ${PERSISTENT_VOLUME_CLAIM_DAG}
+        - name: airpod-log-vol
+          persistentVolumeClaim:
+            claimName: ${PERSISTENT_VOLUME_CLAIM_LOG}
+        - name: fernet-key-vol
+          persistentVolumeClaim:
+            claimName: fernet-key-pvc
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: pip-requirements.txt
+                path: pip-requirements.txt
+            name: pip-requirements
+          name: pip-requirements-vol
+    test: false
+    triggers:
+    - type: ConfigChange
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -528,50 +574,45 @@ objects:
         initContainers:
           - image: docker-registry.rahti.csc.fi/da-images/busybox:1
             name: fernet-key-waiter
-            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.env ]; do sleep 1; done' ]
+            command: ['sh', '-c', 'while [ ! -f /tmp/fernet_key/fernet_key.txt ]; do sleep 1; done' ]
             volumeMounts:
               - name: fernet-key-vol
                 mountPath: /tmp/fernet_key
         containers:
         - env:
-          - name: EXECUTOR
-            value: Celery
-          - name: REDIS_HOST
-            value: ${REDIS_HOST}
-          - name: REDIS_PORT
-            value: ${REDIS_PORT}
-          - name: REDIS_PASSWORD
+          - name : AIRFLOW__CORE__EXECUTOR
+            value: CeleryExecutor
+          - name: AIRFLOW__CELERY__BROKER_URL
             valueFrom:
               secretKeyRef:
-                key: database-password
+                key: broker-url
                 name: redis
-          - name: POSTGRES_HOST
-            value: ${POSTGRES_HOST}
-          - name: POSTGRES_DB
+          - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
             valueFrom:
               secretKeyRef:
-                key: database-name
-                name: postgresql
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                key: database-user
-                name: postgresql
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
+                key: connection-string
                 name: postgresql
           - name: C_FORCE_ROOT
             value: 'true'
           - name: AIRFLOW_HOME
-            value: "/usr/local/airflow"
+            value: "/opt/airflow"
           - name: HOME
-            value: "/usr/local/airflow"
-          - name: PIP_REQUIREMENTS
-            value: ${PIP_REQUIREMENTS}
+            value: "/opt/airflow"
+          - name: _PIP_ADDITIONAL_REQUIREMENTS
+            valueFrom:
+              configMapKeyRef:
+                name: pip-requirements
+                key: pip-requirements.txt
+          - name: AIRFLOW__CORE__FERNET_KEY_CMD
+            value: "cat /tmp/fernet_key/fernet_key.txt"
+          - name: AIRFLOW__CELERY__RESULT_BACKEND
+            valueFrom:
+              secretKeyRef:
+                key: result-backend
+                name: postgresql
           image: ${AIRFLOW_IMAGE}
           args:
+          - celery
           - worker
           imagePullPolicy: Always
           name: worker
@@ -587,13 +628,13 @@ objects:
               cpu: ${WORKER_CPU}
               memory: ${WORKER_MEMORY}
           volumeMounts:
-          - mountPath: "/usr/local/airflow/dags"
+          - mountPath: "/opt/airflow/dags"
             name: airpod-dag-vol
-          - mountPath: "/usr/local/airflow/logs"
+          - mountPath: "/opt/airflow/logs"
             name: airpod-log-vol
-          - mountPath: /requirements.txt
-            name: requirements-vol
-            subPath: requirements.txt
+          - mountPath: /pip-requirements.txt
+            name: pip-requirements-vol
+            subPath: pip-requirements.txt
           - mountPath: '/tmp/airflow'
             name: airpod-tmp-worker-vol
           - mountPath: /tmp/fernet_key
@@ -616,19 +657,17 @@ objects:
         - configMap:
             defaultMode: 420
             items:
-              - key: requirements.txt
-                path: requirements.txt
-            name: requirements
-          name: requirements-vol
+              - key: pip-requirements.txt
+                path: pip-requirements.txt
+            name: pip-requirements
+          name: pip-requirements-vol
         - name: airpod-tmp-worker-vol
           persistentVolumeClaim:
             claimName: ${PERSISTENT_VOLUME_CLAIM_TMP_WORKER}
-        
     test: false
     triggers:
     - type: ConfigChange
-    
- 
+
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -655,6 +694,12 @@ objects:
             image: >-
               quay.io/jupyteronopenshift/s2i-minimal-notebook-py35@sha256:e6f032b57a483b98059eb3e9f4081b67e7224d22e06bddf6700d88ceab7478c3
             imagePullPolicy: Always
+            livenessProbe:
+              httpGet:
+                path: /
+                port: 8080
+              initialDelaySeconds: 30
+              timeoutSeconds: 30
             name: s2i-minimal-notebook-py3
             ports:
               - containerPort: 8080
@@ -669,14 +714,14 @@ objects:
               claimName: ${PERSISTENT_VOLUME_CLAIM_DAG}
     triggers:
       - type: ConfigChange
-  
+
 - apiVersion: v1
   data:
-    requirements.txt: boto3
+    pip-requirements.txt: ${PIP_REQUIREMENTS}
   kind: ConfigMap
   metadata:
-    name: requirements
- 
+    name: pip-requirements
+
 - apiVersion: v1
   stringData:
     flower_basic_auth: ${FLOWER_USER}:${FLOWER_PASSWORD}
@@ -686,12 +731,14 @@ objects:
   metadata:
     name: flower-auth
   type: Opaque
-  
+
 - apiVersion: v1
   stringData:
     database-name: ${POSTGRESQL_DATABASE}
     database-password: ${POSTGRESQL_PASSWORD}
     database-user: ${POSTGRESQL_USER}
+    connection-string: postgresql+psycopg2://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_HOST}:5432/${POSTGRESQL_DATABASE}
+    result-backend: db+postgresql://${POSTGRESQL_USER}:${POSTGRESQL_PASSWORD}@${POSTGRESQL_HOST}:5432/${POSTGRESQL_DATABASE}
   kind: Secret
   metadata:
     labels:
@@ -699,10 +746,11 @@ objects:
       template: postgresql-ephemeral-template
     name: postgresql
   type: Opaque
-  
+
 - apiVersion: v1
   stringData:
     database-password: ${REDIS_PASSWORD}
+    broker-url: redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379/1
   kind: Secret
   metadata:
     labels:
@@ -710,7 +758,7 @@ objects:
       template: redis-ephemeral-template
     name: redis
   type: Opaque
-  
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -738,47 +786,47 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
-    
+
 - apiVersion: v1
   kind: Service
   metadata:
     labels:
       app: ${APPLICATION_NAME}
       template: postgresql-ephemeral-template
-    name: postgresql
+    name: ${POSTGRESQL_HOST}
   spec:
     ports:
-    - name: postgresql
+    - name: ${POSTGRESQL_HOST}
       port: 5432
       protocol: TCP
       targetPort: 5432
     selector:
-      name: postgresql
+      name: ${POSTGRESQL_HOST}
     sessionAffinity: None
     type: ClusterIP
   status:
     loadBalancer: {}
-    
+
 - apiVersion: v1
   kind: Service
   metadata:
     labels:
       app: ${APPLICATION_NAME}
       template: redis-ephemeral-template
-    name: redis
+    name: ${REDIS_HOST}
   spec:
     ports:
-    - name: redis
+    - name: ${REDIS_HOST}
       port: 6379
       protocol: TCP
       targetPort: 6379
     selector:
-      name: redis
+      name: ${REDIS_HOST}
     sessionAffinity: None
     type: ClusterIP
   status:
     loadBalancer: {}
-    
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -806,7 +854,7 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
-    
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -834,7 +882,7 @@ objects:
     type: ClusterIP
   status:
     loadBalancer: {}
-    
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -880,7 +928,7 @@ objects:
       deploymentconfig: jupyter
   status:
     loadBalancer: {}  
-    
+
 - apiVersion: v1
   kind: Route
   metadata:
@@ -898,7 +946,7 @@ objects:
       name: flower
       weight: 100
     wildcardPolicy: None
-  
+
 - apiVersion: v1
   kind: Route
   metadata:
@@ -916,7 +964,7 @@ objects:
       name: webserver
       weight: 100
     wildcardPolicy: None
-      
+
 - apiVersion: v1
   kind: Route
   metadata:
@@ -934,7 +982,7 @@ objects:
       name: jupyter
       weight: 100
     wildcardPolicy: None
-      
+
 - apiVersion: "v1"
   kind: "PersistentVolumeClaim"
   metadata:
@@ -956,7 +1004,7 @@ objects:
     resources:
       requests:
         storage: ${PERSISTENT_VOLUME_CLAIM_LOG_SIZE}
-        
+
 - apiVersion: "v1"
   kind: "PersistentVolumeClaim"
   metadata:
@@ -967,7 +1015,7 @@ objects:
     resources:
       requests:
         storage: ${PERSISTENT_VOLUME_CLAIM_DB_SIZE}
-        
+
 - apiVersion: "v1"
   kind: "PersistentVolumeClaim"
   metadata:
@@ -989,26 +1037,26 @@ objects:
     resources:
       requests:
         storage: 1Mi
-        
+
 parameters:
 - description: Name of the Airflow application
-  displayName: Application Name
+  displayName: Application name
   name: APPLICATION_NAME
   required: true
 - description: Username for the Airflow web UI authentication
-  displayName: Airflow Web UI Username
+  displayName: Airflow web UI username
   name: AUTHENTICATION_USERNAME
   required: true
 - description: Password for the Airflow web UI authentication
-  displayName: Airflow Web UI Password
+  displayName: Airflow web UI password
   name: AUTHENTICATION_PASSWORD
   required: true
 - description: Password for accessing the Jupyter web interface used for writing/uploading DAGs
-  displayName: Jupyter Password
+  displayName: Jupyter password
   name: JUPYTER_PASSWORD
   required: true
 - description: Number of Celery workers
-  displayName: Number of Workers
+  displayName: Number of workers
   name: WORKER_COUNT
   value: "2"
 - description: Celery worker CPU (check with your project limits)
@@ -1016,94 +1064,91 @@ parameters:
   name: WORKER_CPU
   value: "2"
 - description: Celery worker memory size (check with your project limits)
-  displayName: Worker Memory
+  displayName: Worker memory
   name: WORKER_MEMORY
   value: "2Gi"
-- description: Python PIP requirements needed for the DAGs, separated by whitespace
-  displayName: Python PIP Requirements
+- description: Python pip requirements needed for the DAGs, separated by whitespace. NOTE! This feature is fragile, and does not work for example for Airflow providers packages. For best results build your own Airflow image with the dependencies baked in. Consider also using PythonVirtualenvOperator.
+  displayName: Python pip requirements
   name: PIP_REQUIREMENTS
-  value: "pandas scipy"
+  value: "pandas scipy==1.5.1"
 - description: Username for accessing the Flower web UI for Celery workers
+  displayName: Flower username
   from: '[A-Z0-9]{12}'
   generate: expression
   name: FLOWER_USER
 - description: Password for accessing the Flower web UI for Celery workers
+  displayName: Flower password
   from: '[A-Z0-9]{12}'
   generate: expression
   name: FLOWER_PASSWORD
 - description: PostgreSQL (Airflow metadata DB) host
-  displayName: PostgreSQL Hostname
-  name: POSTGRES_HOST
+  displayName: PostgreSQL hostname
+  name: POSTGRESQL_HOST
   value: postgresql
   required: true
 - description: Username for PostgreSQL user that will be used for accessing the database
-  displayName: PostgreSQL Connection Username
+  displayName: PostgreSQL connection username
   from: 'user[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_USER
   required: true
 - description: Password for the PostgreSQL connection user
-  displayName: PostgreSQL Connection Password
+  displayName: PostgreSQL connection password
   from: '[a-zA-Z0-9]{16}'
   generate: expression
   name: POSTGRESQL_PASSWORD
   required: true
 - description: Database name for PostgreSQL database
-  displayName: PostgreSQL Connection Database
+  displayName: PostgreSQL connection database
   from: 'airflow[A-Z0-9]{5}'
   generate: expression
   name: POSTGRESQL_DATABASE
   required: true
-- description: Redis Host (to avoid issues with default naming in OpenShift)
-  displayName: Redis Host
+- description: Redis hostname (to avoid issues with default naming in OpenShift)
+  displayName: Redis hostname
   name: REDIS_HOST
   value: redis
   required: true
-- description: Redis Port (to avoid issues with default naming in OpenShift)
-  displayName: Redis Port
-  name: REDIS_PORT
-  value: "6379"
-  required: true
 - description: Password for Redis database
-  displayName: Redis Connection Password
+  displayName: Redis connection password
   from: '[A-Z0-9]{15}'
   generate: expression
   name: REDIS_PASSWORD
   required: true
 - description: Airflow image link
-  displayName: Airflow Image Link
+  displayName: Airflow image link
   name: AIRFLOW_IMAGE
-  value: docker-registry.rahti.csc.fi/airflow-image/airflow-os:latest
+  value: docker-registry.rahti.csc.fi/airflow-image/airflow-2-os:latest
   required: true
 - description: Attached PERSISTENT volume claim name for storing the DAGs
-  displayName: PERSISTENT Volume Claim Name (DAGs)
+  displayName: PERSISTENT volume claim name (DAGs)
   name: PERSISTENT_VOLUME_CLAIM_DAG
   value: air-dags-pvc
 - description: Size of the pvc volume storing DAGs
-  displayName: DAG Volume Storage Size
+  displayName: DAG volume storage size
   name: PERSISTENT_VOLUME_CLAIM_DAG_SIZE
   value: "1Gi"
 - description: Attached PERSISTENT volume claim name for storing the logs
-  displayName: PERSISTENT Volume Claim Name (Logs)
+  displayName: PERSISTENT volume claim name (logs)
   name: PERSISTENT_VOLUME_CLAIM_LOG
   value: air-logs-pvc
 - description: Size of the pvc volume storing logs
-  displayName: Logs Volume Storage Size
+  displayName: Logs volume storage size
   name: PERSISTENT_VOLUME_CLAIM_LOG_SIZE
   value: "10Gi"
 - description: Attached PERSISTENT volume claim name for storing metadata in PostgreSQL database
-  displayName: PERSISTENT Volume Claim Name (DB)
+  displayName: PERSISTENT volume claim name (database)
   name: PERSISTENT_VOLUME_CLAIM_DB
   value: air-db-pvc
 - description: Size of the metadata volume storage
-  displayName: Metadata Volume Storage Size
+  displayName: Metadata volume storage size
   name: PERSISTENT_VOLUME_CLAIM_DB_SIZE
   value: "1Gi"
 - description: Attached PERSISTENT volume claim name for storing temporary data across Celery workers
-  displayName: PERSISTENT Volume Claim Name (Temp Storage for Workers)
+  displayName: PERSISTENT volume claim name (temporary storage for workers)
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER
   value: air-tmp-worker-pvc
 - description: Size of the temporary data storage in Celery workers
-  displayName: Metadata Volume Storage Size
+  displayName: Temporary data volume storage size
   name: PERSISTENT_VOLUME_CLAIM_TMP_WORKER_SIZE
   value: "2Gi"
